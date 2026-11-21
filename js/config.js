@@ -5,5 +5,5 @@
  * Jangan pernah menaruh kata sandi, token, atau kunci API di berkas ini.
  */
 window.APP_CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/GANTI_DENGAN_ID_DEPLOYMENT/exec'
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbz0KY8NFgklrMZBEm8A5-5FyS76uES7jxGWH7YDAL8oEJyeXGnyOS0zXPZr2QHKv24D/exec'
 };
