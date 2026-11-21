@@ -1,7 +1,9 @@
-# Panduan Instalasi KasirMart v1.0
+# Panduan Instalasi KasirMart v1.1
 
 Aplikasi kasir toko sembako: backend **Google Apps Script + Google Sheets**, frontend di **GitHub Pages**.
 Panduan ini ditulis untuk pemula. Ikuti urutannya dari atas ke bawah. Waktu total sekitar 30–45 menit.
+
+> **Sudah memasang v1.0?** Jangan ikuti panduan ini dari awal. Baca **`PANDUAN-UPDATE-v1.1.md`**.
 
 ---
 
@@ -11,8 +13,10 @@ Panduan ini ditulis untuk pemula. Ikuti urutannya dari atas ke bawah. Waktu tota
 |---|---|---|
 | `Kode.gs` | Seluruh backend (API, database, login, laporan) | Editor Google Apps Script |
 | `appsscript.json` | Pengaturan proyek (zona waktu Asia/Jakarta). **Opsional**, lihat langkah A3 | Editor Google Apps Script |
-| `kasirmart-frontend.zip` | Tampilan aplikasi (`index.html`, `css/`, `js/`) | GitHub Pages |
+| `kasirmart-frontend.zip` | Tampilan aplikasi lengkap (`index.html`, `css/`, `js/`), untuk **instalasi baru** | GitHub Pages |
+| `kasirmart-frontend-UPDATE-v1.1.zip` | Sama, tetapi **tanpa `js/config.js`**, untuk update dari v1.0 | GitHub Pages |
 | `PANDUAN-INSTALASI.md` | Dokumen ini | Untuk dibaca |
+| `PANDUAN-UPDATE-v1.1.md` | Langkah update dari v1.0, panduan kasir, QRIS & rekening | Untuk dibaca |
 
 > **Penting:** `Kode.gs` dan `appsscript.json` **tidak** dimasukkan ke ZIP frontend. Keduanya cukup disalin-tempel ke Apps Script. Repository GitHub hanya berisi isi ZIP.
 
@@ -63,7 +67,7 @@ Setup membuat:
 `setupAppEnvironment()` **aman dijalankan ulang**. Data, kata sandi, dan kunci rahasia yang sudah ada tidak akan ditimpa.
 
 **A5. (Opsional) Isi data contoh**
-Ingin mencoba dulu dengan barang contoh? Pilih fungsi **`isiDataContoh`** → ▶ Jalankan. Fungsi ini menambahkan 7 kategori dan 13 barang, hanya bila sheet Barang masih kosong. Lewati langkah ini bila Anda akan mengimpor data sendiri (bagian D).
+Ingin mencoba dulu dengan barang contoh? Pilih fungsi **`isiDataContoh`** → ▶ Jalankan. Fungsi ini menambahkan 7 kategori dan 16 barang (termasuk 3 barang curah ber-satuan kg/liter), hanya bila sheet Barang masih kosong. Lewati langkah ini bila Anda akan mengimpor data sendiri (bagian D).
 
 **A6. Deploy sebagai Web App**
 1. Klik **Terapkan (Deploy)** → **Deployment baru**.
@@ -80,7 +84,7 @@ Ingin mencoba dulu dengan barang contoh? Pilih fungsi **`isiDataContoh`** → �
 Buka URL `/exec` tadi di browser dengan tambahan `?action=ping`, contoh `…/exec?action=ping`. Hasil yang benar:
 
 ```json
-{"success":true,"data":{"app":"KasirMart","version":"1.0.0","ready":true,…}}
+{"success":true,"data":{"app":"KasirMart","version":"1.1.0","ready":true,…}}
 ```
 
 ---
@@ -95,6 +99,7 @@ kasirmart-frontend\
 ├── index.html      ← harus ada di sini (paling atas)
 ├── README.md
 ├── PANDUAN-INSTALASI.md
+├── PANDUAN-UPDATE-v1.1.md
 ├── css\style.css
 └── js\config.js, core.js, charts.js, kasir.js, pages.js, app.js
 ```
@@ -165,6 +170,15 @@ Setelah 1–2 menit muncul: *Your site is live at `https://USERNAME.github.io/ka
 3. Aplikasi langsung meminta **kata sandi baru**: minimal 8 karakter, berisi huruf dan angka.
 4. Selesai. Anda masuk ke Dashboard.
 
+Halaman login punya pilihan **Masuk sebagai: Pemilik | Kasir**. Pemilik cukup mengisi kata sandi. Kasir mengisi nama pengguna dan kata sandi dari akun yang dibuat pemilik.
+
+### C2. Siapkan pembayaran & akun kasir (v1.1)
+- **Pengaturan → Pembayaran**: unggah gambar QRIS statis toko, isi nama merchant dan rekening transfer.
+- **Pengaturan → Pengguna kasir**: buat akun untuk karyawan. Kasir hanya bisa membuka Kasir, Cek Stok, dan Transaksi Saya, tanpa harga modal, keuntungan, laporan, atau pengaturan.
+- **Barang**: barang curah pakai satuan **kg / ons / liter / meter** agar bisa dijual pecahan (0,5 kg).
+
+Rinciannya ada di `PANDUAN-UPDATE-v1.1.md` bagian 6–8.
+
 Lupa kata sandi? Di editor Apps Script jalankan **`resetSandiAdmin`**. Kata sandi sementara baru akan tampil di log dan wajib diganti saat login.
 Login terkunci 15 menit karena 5 kali salah sandi? Jalankan **`bukaKunciLogin`**.
 
@@ -207,8 +221,9 @@ Semua rahasia disimpan di **Script Properties**. Tidak ada rahasia di kode, di s
 | `SESSION_SECRET` | Kunci tanda tangan token login | Otomatis saat setup |
 | `ADMIN_PASS_HASH`, `ADMIN_SALT` | Hash kata sandi (sandi asli tidak disimpan) | Otomatis saat setup / ganti sandi |
 | `SPREADSHEET_ID`, `DRIVE_ROOT_FOLDER_ID`, `FOLDER_ASSETS`, `FOLDER_BACKUP` | Lokasi database & folder | Otomatis saat setup |
-| `LOGO_FILE_ID` | Berkas logo di Drive | Otomatis saat unggah logo |
-| `REV_admin`, `RVT`, `LOGIN_KUNCI_SAMPAI`, `KEEP_WARM` | Status sesi, kunci login, saklar keepWarm | Otomatis |
+| `LOGO_FILE_ID`, `QRIS_FILE_ID` | Berkas logo & gambar QRIS di Drive (QRIS tidak dibagikan publik) | Otomatis saat unggah |
+| `USR_<nama>` | Akun kasir: nama, **hash + salt** kata sandi, status (sandi asli tidak disimpan) | Dari Pengaturan → Pengguna kasir |
+| `REV_admin`, `REV_k_<nama>`, `RVT`, `LOGIN_KUNCI_SAMPAI`, `KEEP_WARM` | Status sesi pemilik/kasir, kunci login, saklar keepWarm | Otomatis |
 
 Melihatnya: Apps Script → ⚙️ Setelan Proyek → **Properti skrip**. Jangan mengubah atau menghapus `SESSION_SECRET`; gunakan fungsi `rotasiSecretSesi` bila perlu.
 
@@ -217,7 +232,8 @@ Sheet **AppConfig** hanya catatan baca-saja berisi ID (bukan rahasia). Kode tida
 **Jaga keamanan:**
 - Jangan menambah editor ke proyek Apps Script. Siapa pun yang bisa mengedit proyek bisa melihat Script Properties.
 - Jangan membagikan spreadsheet database ke orang lain.
-- HP atau laptop kasir hilang? Buka **Pengaturan → Keamanan → Keluar dari semua perangkat**.
+- HP atau laptop pemilik hilang? Buka **Pengaturan → Keamanan → Keluar dari semua perangkat**.
+- HP kasir hilang, atau karyawan berhenti? **Pengaturan → Pengguna kasir → Nonaktifkan** (langsung keluar dari semua perangkat) atau **Reset sandi**.
 
 ---
 
@@ -278,8 +294,9 @@ Mengubah barang, kategori, atau pengaturan langsung di Google Sheets (bukan lewa
 | `setupAppEnvironment` | Setup awal; aman diulang dan menyegarkan cache |
 | `isiDataContoh` | Data contoh (hanya bila Barang kosong) |
 | `resetSandiAdmin` | Lupa kata sandi → sandi sementara baru di log |
-| `bukaKunciLogin` | Membuka kunci login setelah 5 kali salah |
-| `rotasiSecretSesi` | Curiga token bocor → semua perangkat wajib login ulang |
+| `bukaKunciLogin` | Membuka kunci login pemilik setelah 5 kali salah |
+| `bukaKunciKasir` | Membuka kunci akun kasir (atau cukup Reset sandi dari aplikasi) |
+| `rotasiSecretSesi` | Curiga token bocor → semua perangkat (pemilik & kasir) wajib login ulang |
 | `cekPerforma` | Laporan status cache & pemicu |
 | `matikanKeepWarm` / `nyalakanKeepWarm` | Saklar pemicu pemanas |
 
@@ -299,14 +316,17 @@ Mengubah barang, kategori, atau pengaturan langsung di Google Sheets (bukan lewa
 | Tampilan polos tanpa warna | Folder `css/` dan `js/` rata | Jangan upload via web; push via git |
 | Logo tidak tampil di perangkat lain | Drive menolak berbagi publik (akun kantor/sekolah) | Pakai akun Gmail pribadi, atau izinkan berbagi link di Drive |
 | Struk terpotong atau berukuran A4 | Ukuran kertas atau margin printer | Langkah F3 |
+| QRIS "belum diatur" di layar kasir | Gambar QRIS belum diunggah | Pengaturan → Pembayaran |
+| Barang curah tidak bisa dijual 0,5 | Satuan bukan kg/ons/liter/meter | Ubah satuan di menu Barang |
 
 ---
 
-## K. Batasan versi 1.0 (sesuai PRD)
+## K. Batasan versi 1.1
 
-- Satu akun admin, tanpa pembagian peran.
+- Satu akun pemilik ditambah maksimal 30 akun kasir. Kasir tidak bisa mengubah barang, stok, atau harga.
 - Wajib internet; belum ada mode offline. Keranjang tetap tersimpan di perangkat bila koneksi putus.
-- Transfer dan QRIS dicatat manual, tanpa verifikasi otomatis.
+- QRIS memakai **gambar QRIS statis** toko: pelanggan mengetik nominal sendiri, dan kasir mengonfirmasi setelah dana masuk. Tidak ada verifikasi otomatis; itu butuh *payment gateway* berbayar.
+- Transfer bank dicatat manual setelah kasir melihat dana masuk.
 - Belum ada diskon, promo, member, maupun foto barang.
 - "Unduh PDF" memakai dialog cetak browser (pilih *Simpan sebagai PDF*).
 - Sesi login berlaku 12 jam.
@@ -316,8 +336,9 @@ Mengubah barang, kategori, atau pengaturan langsung di Google Sheets (bukan lewa
 ## L. Ringkasan pengujian
 
 Diuji sebelum diserahkan:
-- **Backend: 108 uji** di simulator Google Apps Script (Node). Cakupannya: setup berulang tanpa menimpa rahasia, login, penguncian 5 kali salah, wajib ganti sandi, token dicabut, transaksi dan stok, kirim ulang tanpa transaksi ganda, validasi stok/harga/uang kurang, nomor urut per hari, laporan cocok dengan jumlah manual, import dry-run/idempoten/delta, CSV, logo, dan cadangan.
+- **Backend: 199 uji** di simulator Google Apps Script (Node): 108 uji v1.0 dan 91 uji v1.1 (akun kasir, batas hak kasir, QRIS, rekening, jumlah pecahan, upgrade dari v1.0). Cakupannya: setup berulang tanpa menimpa rahasia, login, penguncian 5 kali salah, wajib ganti sandi, token dicabut, transaksi dan stok, kirim ulang tanpa transaksi ganda, validasi stok/harga/uang kurang, nomor urut per hari, laporan cocok dengan jumlah manual, import dry-run/idempoten/delta, CSV, logo, dan cadangan.
 - **Beban:** 3.100 transaksi dalam satu bulan (100 per hari). Laporan bulan pertama membaca ±115 ribu sel, permintaan berikutnya 0 sel (dari cache). Semua nilai cache tetap di bawah batas 100 KB.
-- **Browser: 53 uji** dengan Chrome (layar 1440 px dan HP 390 px): login, kasir, struk, riwayat, barang, kategori, stok, laporan, pengaturan, import, tanpa error JavaScript dan tanpa scroll menyamping di HP.
+- **Browser: 92 uji** dengan Chrome (layar 1440 px dan HP 390 px): login pemilik & kasir, kasir (tunai, QRIS + layar pelanggan, transfer, timbang kg), struk, riwayat, cek stok, barang, kategori, stok, laporan, pengaturan, import, tanpa error JavaScript dan tanpa scroll menyamping di HP.
+- **Audit tata letak** di 1280×720, 1366×768, 1024×768, dan 390×844 untuk semua halaman pemilik dan kasir: 0 label patah, 0 angka terpotong, 0 tabel meluber.
 
 Angka di atas diukur di simulator. Kecepatan di Google Apps Script asli bergantung pada server Google, biasanya 0,5–2 detik per aksi.

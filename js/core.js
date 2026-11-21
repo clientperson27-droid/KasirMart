@@ -4,7 +4,7 @@
    toast, modal, tema, paginasi.
    ========================================================================== */
 'use strict';
-const APP_FE_VERSION = '1.0.0';
+const APP_FE_VERSION = '1.1.0';
 
 /* ----------------------------------------------------------------- Utilitas */
 const U = {
@@ -22,6 +22,51 @@ const U = {
     return String(Math.round(v));
   },
   parseNum(s) { const d = String(s || '').replace(/[^\d]/g, ''); return d ? Number(d) : 0; },
+  /** Jumlah barang: bilangan bulat, atau pecahan (maks. 3 desimal) untuk kg/liter. Tampil "1,5". */
+  qty(n) { return (Math.round((Number(n) || 0) * 1000) / 1000).toLocaleString('id-ID', { maximumFractionDigits: 3 }); },
+  /** "1,5" / "1.5" / "0,25 kg" → 1.5 / 0.25 (koma atau titik = desimal) */
+  parseQty(s) {
+    const t = String(s === undefined || s === null ? '' : s).replace(',', '.').replace(/[^\d.]/g, '');
+    const i = t.indexOf('.'), v = parseFloat(i < 0 ? t : t.slice(0, i + 1) + t.slice(i + 1).replace(/\./g, ''));
+    return isFinite(v) ? Math.round(v * 1000) / 1000 : 0;
+  },
+  /** Bersihkan ketikan jumlah: angka + satu pemisah desimal (koma), maks. 3 angka di belakang koma. */
+  cleanQty(s, desimal) {
+    let t = String(s || '').replace('.', ',').replace(/[^\d,]/g, '');
+    if (!desimal) return t.replace(/,/g, '');
+    const i = t.indexOf(',');
+    return i < 0 ? t : t.slice(0, i + 1) + t.slice(i + 1).replace(/,/g, '').slice(0, 3);
+  },
+  /** Satuan yang boleh pecahan — harus sama dengan SATUAN_DESIMAL di Kode.gs */
+  DESIMAL: ['kg', 'kilogram', 'ons', 'liter', 'ltr', 'l', 'meter', 'm'],
+  desimal(satuan) { return U.DESIMAL.includes(String(satuan || '').toLowerCase().trim()); },
+  /** "1,5 kg" untuk satuan pecahan, "3" untuk satuan hitung */
+  qtySat(q, satuan) { return U.desimal(satuan) ? U.qty(q) + ' ' + satuan : U.qty(q); },
+  /** Subtotal rupiah — dibulatkan sama seperti server */
+  sub(q, harga) { return Math.round((Number(q) || 0) * (Number(harga) || 0)); },
+  async copy(text) {
+    try { await navigator.clipboard.writeText(String(text)); return true; }
+    catch (e) {
+      const t = document.createElement('textarea'); t.value = String(text); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (x) { ok = false; } t.remove(); return ok;
+    }
+  },
+  /** Perkecil gambar sebelum diunggah (QR tetap tajam: PNG dulu, JPEG bila masih besar). */
+  async shrinkImage(file, maxSide = 1000, maxBytes = 500 * 1024) {
+    const url = await U.fileToBase64(file);
+    if (file.size <= maxBytes) {
+      const dim = await new Promise(r => { const i = new Image(); i.onload = () => r([i.naturalWidth, i.naturalHeight]); i.onerror = () => r([0, 0]); i.src = url; });
+      if (Math.max(dim[0], dim[1]) <= maxSide * 1.6) return { mime: file.type, base64: url };
+    }
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Gambar tidak terbaca.')); i.src = url; });
+    const k = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.imageSmoothingEnabled = k < 1; x.drawImage(img, 0, 0, c.width, c.height);
+    let out = c.toDataURL('image/png'), mime = 'image/png';
+    if (out.length * 0.75 > maxBytes) { out = c.toDataURL('image/jpeg', 0.92); mime = 'image/jpeg'; }
+    if (out.length * 0.75 > maxBytes) throw new Error('Gambar masih lebih dari 500 KB setelah diperkecil. Potong gambar agar hanya kotak QR yang terlihat.');
+    return { mime, base64: out };
+  },
   BULAN: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
   BULAN_PANJANG: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
   HARI: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
@@ -128,7 +173,15 @@ const ICONS = {
   palette: 'M12 3a9 9 0 1 0 0 18c1 0 1.5-.7 1.5-1.5 0-1.2-1-1.5-1-2.5S13.3 15 14.5 15H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8zM7.5 11.5v.5M10 7.5v.5M15 7.5v.5',
   shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
   import: 'M12 3v12M7 10l5 5 5-5M4 15v6h16v-6',
-  wifiOff: 'M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5.2-2.8M14 10.3A10 10 0 0 1 19 13M2 9a15 15 0 0 1 4.3-2.6M12 20v.5'
+  wifiOff: 'M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5.2-2.8M14 10.3A10 10 0 0 1 19 13M2 9a15 15 0 0 1 4.3-2.6M12 20v.5',
+  qr: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM6 6h1v1H6zM17 6h1v1h-1zM6 17h1v1H6zM14 14h3v3h-3zM18 18h3v3h-3zM14 20h1M20 14h1',
+  bank: 'M3 9l9-6 9 6M4 9h16M5 9v9M9.5 9v9M14.5 9v9M19 9v9M3 21h18M3 18h18',
+  copy: 'M8 8h13v13H8zM16 8V3H3v13h5',
+  users: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7.5M18 14.5a7 7 0 0 1 4 6.5',
+  scale: 'M12 3v18M5 21h14M4 7h16M7 7l-3 7a3 3 0 0 0 6 0zM17 7l-3 7a3 3 0 0 0 6 0z',
+  expand: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
+  cash: 'M2 6h20v12H2zM6 12h.5M17.5 12h.5M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  dots: 'M12 5v.5M12 12v.5M12 19v.5'
 };
 function I(name, cls = '') { return `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${ICONS[name] || ''}"/></svg>`; }
 
@@ -150,7 +203,7 @@ const Session = {
 
 /* ----------------------------------------------------------------- Klien API */
 const API = (() => {
-  const READ = /^(ping|publicSettings|boot|katalog|dashboard|transaksi\.(list|detail)|stok\.log|laporan|system\.status|batch)$/;
+  const READ = /^(ping|publicSettings|boot|katalog|qris\.get|users\.list|dashboard|transaksi\.(list|detail)|stok\.log|laporan|system\.status|batch)$/;
   const inflight = {};
   let epoch = 0;
   const log = [];
@@ -271,6 +324,7 @@ const Toast = {
     setTimeout(() => el.remove(), type === 'error' ? Math.max(ms, 6000) : ms);
   },
   ok(m) { this.show(m, 'ok'); },
+  clear() { const r = $('#toast-root'); if (r) r.innerHTML = ''; },
   err(m) { this.show(m, 'error'); },
   res(r, okMsg) { if (r.success) this.ok(okMsg || r.message || 'Berhasil.'); else this.err(r.message || 'Terjadi kesalahan.'); return r.success; }
 };
@@ -385,7 +439,7 @@ const View = {
     const map = { Aktif: 'pill-ok', Tersedia: 'pill-ok', Lunas: 'pill-ok', Nonaktif: 'pill-off', Habis: 'pill-danger', 'Stok Habis': 'pill-danger', Menipis: 'pill-warn' };
     return `<span class="pill ${map[status] || 'pill-neutral'}">${U.esc(status)}</span>`;
   },
-  metode(m) { return `<span class="pill ${m === 'Tunai' ? 'pill-ok' : 'pill-neutral'}">${U.esc(m)}</span>`; },
+  metode(m) { return `<span class="pill ${m === 'Tunai' ? 'pill-ok' : m === 'QRIS' || m === 'Transfer' ? 'pill-info' : 'pill-neutral'}">${U.esc(m)}</span>`; },
   /** Logo toko (thumbnail kecil); bila belum ada → ubin inisial berwarna tema. */
   logo(settings, size = 40) {
     const url = settings && settings.URL_Logo;

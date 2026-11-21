@@ -1,6 +1,6 @@
 # KasirMart — Frontend
 
-Aplikasi kasir digital untuk toko sembako. Folder ini adalah **frontend** yang dipasang di GitHub Pages.
+Aplikasi kasir digital untuk toko sembako (v1.1: akun kasir, QRIS & transfer, satuan pecahan kg/liter). Folder ini adalah **frontend** yang dipasang di GitHub Pages.
 Backend-nya berjalan di Google Apps Script (`Kode.gs`, disalin-tempel ke editor Apps Script, tidak ada di repo ini).
 
 ## Yang perlu diisi
@@ -13,9 +13,9 @@ css/style.css       desain "Wireframe Precision POS" (teal, radius 0, angka tabu
 js/config.js        URL backend
 js/core.js          utilitas, klien API (dedupe, batch, retry), ikon, modal, toast, tema
 js/charts.js        grafik SVG (tanpa pustaka luar)
-js/kasir.js         halaman Kasir & struk thermal 58/80 mm
-js/pages.js         Dashboard, Riwayat, Barang, Kategori, Stok, Laporan, Pengaturan
-js/app.js           boot, login, router, pintasan keyboard
+js/kasir.js         halaman Kasir, timbang kg/liter, QRIS & transfer, layar pelanggan, struk thermal 58/80 mm
+js/pages.js         Dashboard, Riwayat, Cek Stok, Barang, Kategori, Stok, Laporan, Pengaturan
+js/app.js           boot, login Pemilik/Kasir, tampilan per peran, router, pintasan keyboard
 ```
 
 ## Memperbarui
@@ -26,4 +26,4 @@ git push
 ```
 Lalu buka situs dan tekan Ctrl+Shift+R.
 
-Panduan lengkap: `PANDUAN-INSTALASI.md`.
+Panduan lengkap: `PANDUAN-INSTALASI.md`. Update dari v1.0: `PANDUAN-UPDATE-v1.1.md`.
